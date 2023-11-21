@@ -1,25 +1,37 @@
 // SignIn.js
 import React from 'react';
-import { useSupabase } from 'react-supabase';
-import { useHistory } from 'react-router-dom';
+import { createClient } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 
 function SignIn() {
-  const supabase = useSupabase();
-  const history = useHistory();
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+    const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const navigate = useNavigate();
 
-  const signInWithGoogle = async () => {
-    const { user, session, error } = await supabase.auth.signIn({
-      provider: 'google',
-    });
-
-    if (error) {
-      console.error('Error signing in with Google:', error.message);
-    }
-
-    if (user) {
-      history.push('/chat');
-    }
-  };
+    const signInWithGoogle = async () => {
+        try {
+          const { user, error } = await supabase.auth.signInWithIdToken({
+            provider: 'google',
+          });
+      
+          if (error) {
+            console.error('Error signing in with Google:', error.message);
+          }
+      
+          if (user) {
+            // Redirect or navigate to the chat page
+            // Example using react-router-dom
+            navigate.push('/chat');
+          }
+        } catch (error) {
+          console.error('Error:', error.message);
+        }
+      };
+      <Outlet/>
+      
 
   return (
     <div>

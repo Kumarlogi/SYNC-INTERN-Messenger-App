@@ -1,16 +1,22 @@
 // SignOut.js
 import React from 'react';
-import { useSupabase } from 'react-supabase';
-import { useHistory } from 'react-router-dom';
+import { createClient } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 
 function SignOut() {
-  const supabase = useSupabase();
-  const history = useHistory();
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+    const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const navigate = useNavigate();
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    history.push('/');
-  };
+    const signOut = async () => {
+        await supabase.auth.signOut();
+        navigate.push('/');
+    };
+
+    <Outlet/>
 
   return (
     <button onClick={signOut}>Sign Out</button>

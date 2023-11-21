@@ -1,12 +1,16 @@
 // Chat.js
 import React, { useState, useEffect } from 'react';
-import { useSupabase } from 'react-supabase';
+import { createClient } from '@supabase/supabase-js';
 
 function Chat() {
-  const supabase = useSupabase();
-  const [user, setUser] = useState(null);
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
+    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+    const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const [user, setUser] = useState(null);
+    const [message, setMessage] = useState('');
+    const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     const user = supabase.auth.user();
