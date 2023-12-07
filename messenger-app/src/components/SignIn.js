@@ -1,44 +1,54 @@
 // SignIn.js
-import React from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
-import { Outlet } from 'react-router-dom';
+import React, { useState } from 'react';
 
-function SignIn() {
-    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-    const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
-    
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    const navigate = useNavigate();
+const SignIn = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
-    const signInWithGoogle = async () => {
-        try {
-          const { user, error } = await supabase.auth.signInWithIdToken({
-            provider: 'google',
-          });
-      
-          if (error) {
-            console.error('Error signing in with Google:', error.message);
-          }
-      
-          if (user) {
-            // Redirect or navigate to the chat page
-            // Example using react-router-dom
-            navigate.push('/chat');
-          }
-        } catch (error) {
-          console.error('Error:', error.message);
-        }
-      };
-      <Outlet/>
-      
+  const handleSignIn = async () => {
+    // Access environment variables
+    const apiKey = process.env.REACT_APP_API_KEY;
+    const apiUrl = process.env.REACT_APP_API_URL;
+
+    // Implement your sign-in logic using the API key and URL
+    // For example, make a fetch request to the authentication endpoint
+
+    try {
+      const response = await fetch(`${apiUrl}/signin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      // Handle the response
+      const data = await response.json();
+      console.log(data);
+    } catch (error) {
+      console.error('Error signing in:', error);
+    }
+  };
+
+  
 
   return (
     <div>
-      <h2>Sign In</h2>
-      <button onClick={signInWithGoogle}>Sign in with Google</button>
+      <h1>Sign In</h1>
+      <label>
+        Username:
+        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
+      </label>
+      <br />
+      <label>
+        Password:
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      </label>
+      <br />
+      <button onClick={handleSignIn}>Sign In</button>
     </div>
   );
-}
+};
 
 export default SignIn;

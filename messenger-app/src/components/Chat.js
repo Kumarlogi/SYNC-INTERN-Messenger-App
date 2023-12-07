@@ -1,103 +1,88 @@
-// Chat.js
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
+import { Dropdown } from 'react-bootstrap';
+import axios from 'axios';
+import google from '../assets/images/Google.svg';
+// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+// import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 
-function Chat() {
-    const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-    const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
+const Chat = () => {
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    const [user, setUser] = useState(null);
-    const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState([]);
-
-  useEffect(() => {
-    const user = supabase.auth.user();
-    setUser(user);
-
-    if (!user) {
-      supabase.auth.onAuthStateChange((event, session) => {
-        setUser(session?.user ?? null);
-      });
-    }
-  }, [supabase]);
+  const login = useGoogleLogin({
+    onSuccess: (codeResponse) => setUser(codeResponse),
+    onError: (error) => console.log('Login Failed:', error),
+  });
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching messages:', error.message);
-      }
-
-      setMessages(data ?? []);
-    };
-
-    fetchMessages();
-
-    const subscription = supabase
-      .from('messages')
-      .on('INSERT', (payload) => {
-        setMessages((prevMessages) => [...prevMessages, payload.new]);
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  const sendMessage = async () => {
-    if (message.trim() === '') return;
-
-    const { error } = await supabase
-      .from('messages')
-      .upsert([
-        {
-          user_id: user.id,
-          text: message,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-    if (error) {
-      console.error('Error sending message:', error.message);
+    if (user) {
+      axios
+        .get(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`, {
+          headers: {
+            Authorization: `Bearer ${user.access_token}`,
+            Accept: 'application/json',
+          },
+        })
+        .then((res) => {
+          setProfile(res.data);
+        })
+        .catch((err) => console.log(err));
     }
+  }, [user]);
 
-    setMessage('');
+  // log out function to log the user out of google and set the profile array to null
+  const logOut = () => {
+    googleLogout();
+    setProfile(null);
+    setUser(null); // Ensure the user state is set to null as well
   };
 
   return (
     <div>
-      <h2>Chat Room</h2>
-      {user ? (
-        <>
-          <p>Welcome, {user.email}!</p>
-          <ul>
-            {messages.map((msg, index) => (
-              <li key={index}>
-                <strong>{msg.user_id}:</strong> {msg.text}
-              </li>
-            ))}
-          </ul>
-          <div>
-            <input
-              type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-            <button onClick={sendMessage}>Send</button>
-          </div>
-        </>
+      {profile ? (
+        <div>
+          <Dropdown className='dropdown-end'>
+            <Dropdown.Toggle variant="light" id="dropdown-basic" className='rounded-5 rounded-top'>
+              <img src={profile.picture} alt="user image" 
+                className='rounded-circle mx-auto d-block border border-4 border-warning' 
+                  style={{ width: '60px' }}
+                />
+            </Dropdown.Toggle>
+
+            <Dropdown.Menu>
+              <Dropdown.Item href="#/action-1">
+                <h3>User Logged in</h3>
+              </Dropdown.Item>
+              <Dropdown.Item href="#/action-2">
+                <p>Name: {profile.name}</p>
+              </Dropdown.Item>
+              <Dropdown.Item href="#/action-3">
+                <p>Email Address: {profile.email}</p>
+              </Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item href="#/action-3">
+                <div onClick={logOut}>Log out</div>
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+        </div>
       ) : (
-        <p>Please sign in to join the chat.</p>
+        <div>
+          <button onClick={() => login()} class="btn btn-light rounded-5 rounded-top">
+            <img src={google} alt='google' 
+              style={{ height: '30' }} />
+            <div className='fs-5' 
+              style={{ fontFamily: 'sans-serif', color: '#E3BE15', fontWeight: 'bold'}}>
+              Login
+            </div>
+          </button>
+          {login.loading && <p>Loading...</p>}
+          {login.error && <p>Login Failed. Please try again.</p>}
+        </div>
       )}
     </div>
   );
-}
+};
 
 export default Chat;
