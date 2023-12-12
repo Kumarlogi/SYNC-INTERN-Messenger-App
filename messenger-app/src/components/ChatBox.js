@@ -1,12 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  query,
-  collection,
-  orderBy,
-  onSnapshot,
-  limit,
-} from "firebase/firestore";
-import { db } from "../firebase";
+import { Firestore } from "@google-cloud/firestore";
 import Message from "./Message";
 import SendMessage from "./SendMessage";
 
@@ -15,13 +8,41 @@ const ChatBox = () => {
   const scroll = useRef();
 
   useEffect(() => {
-    const q = query(
-      collection(db, "messages"),
-      orderBy("createdAt", "desc"),
-      limit(50)
-    );
+    // Path to the service account key file downloaded from the Google Cloud Console
+    const serviceAccountKey = require("../client_secret_367515410868-aiejbe213c462t0c2dqaa2eth2vbl1ik.apps.googleusercontent.com.json"); //../path/to/your/serviceAccountKey.json
 
-    const unsubscribe = onSnapshot(q, (QuerySnapshot) => {
+    // Initialize Firestore with the service account key
+    const firestore = new Firestore({
+      projectId: '367515410868-aiejbe213c462t0c2dqaa2eth2vbl1ik.apps.googleusercontent.com', //ur_project_id
+      credentials: serviceAccountKey,
+    });
+
+    const fetchData = async () => {
+      try {
+        // Query documents from the collection
+        const querySnapshot = await firestore.collection("messages").orderBy("createdAt", "desc").limit(50).get();
+
+        // Process the query results
+        const fetchedMessages = [];
+        querySnapshot.forEach((doc) => {
+          fetchedMessages.push({ ...doc.data(), id: doc.id });
+        });
+
+        // Sort the messages by createdAt
+        const sortedMessages = fetchedMessages.sort((a, b) => a.createdAt - b.createdAt);
+
+        // Update the state with the sorted messages
+        setMessages(sortedMessages);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    // Fetch data when the component mounts
+    fetchData();
+  
+    // Set up real-time updates (if needed)
+    const unsubscribe = firestore.collection("messages").onSnapshot((snapshot) => {
       const fetchedMessages = [];
       QuerySnapshot.forEach((doc) => {
         fetchedMessages.push({ ...doc.data(), id: doc.id });
@@ -31,7 +52,11 @@ const ChatBox = () => {
       );
       setMessages(sortedMessages);
     });
-    return () => unsubscribe;
+
+    // Clean up subscriptions when the component unmounts
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   return (
